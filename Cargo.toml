@@ -4,3 +4,5 @@ version = "0.1.0"
 edition = "2021"
 
 [dependencies]
+locale_config = "*"
+unic-segment = "0.9"

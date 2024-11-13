@@ -2,6 +2,7 @@ use std::env;
 use std::fs::File;
 use std::io::{self, BufReader, Read};
 use std::process;
+use locale_config::Locale;
 
 struct Config {
     show_lines: bool,
@@ -84,6 +85,8 @@ fn count_content<R: Read>(mut reader: BufReader<R>) -> io::Result<Counts> {
 
 fn main() {
     let args: Vec<String> = env::args().collect();
+    let current_locale = Locale::current();
+    eprintln!("Using locale: {:?}", current_locale);
 
     let config = Config::new(&args).unwrap_or_else(|err| {
         eprintln!("Error parsing arguments: {}", err);
