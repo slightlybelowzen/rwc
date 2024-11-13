@@ -3,6 +3,7 @@ use std::fs::File;
 use std::io::{self, BufReader, Read};
 use std::process;
 use locale_config::Locale;
+use unic_segment::{WordBounds, Words};
 
 struct Config {
     show_lines: bool,
@@ -60,6 +61,13 @@ struct Counts {
     chars: usize,
 }
 
+fn count_words(line: &str) -> usize {
+    fn has_alphanumeric(s: &&str) -> bool {
+        s.chars().any(|ch| ch.is_alphanumeric())
+    } 
+    return Words::new(line, has_alphanumeric).count(); 
+}
+
 fn count_content<R: Read>(mut reader: BufReader<R>) -> io::Result<Counts> {
     let mut counts = Counts {
         lines: 0,
@@ -77,7 +85,7 @@ fn count_content<R: Read>(mut reader: BufReader<R>) -> io::Result<Counts> {
 
     for line in content.lines() {
         counts.lines += 1;
-        counts.words += line.split_whitespace().count();
+        counts.words += count_words(line);
     }
 
     Ok(counts)
@@ -85,8 +93,6 @@ fn count_content<R: Read>(mut reader: BufReader<R>) -> io::Result<Counts> {
 
 fn main() {
     let args: Vec<String> = env::args().collect();
-    let current_locale = Locale::current();
-    eprintln!("Using locale: {:?}", current_locale);
 
     let config = Config::new(&args).unwrap_or_else(|err| {
         eprintln!("Error parsing arguments: {}", err);
