@@ -6,6 +6,7 @@ use std::process;
 struct Config {
     show_lines: bool,
     show_words: bool,
+    show_bytes: bool,
     show_chars: bool,
     filename: Option<String>,
 }
@@ -15,6 +16,7 @@ impl Config {
         let mut config = Config {
             show_lines: false,
             show_words: false,
+            show_bytes: false,
             show_chars: false,
             filename: None,
         };
@@ -29,7 +31,8 @@ impl Config {
                     match c {
                         'l' => config.show_lines = true,
                         'w' => config.show_words = true,
-                        'c' => config.show_chars = true,
+                        'c' => config.show_bytes = true,
+                        'm' => config.show_chars = true,
                         _ => return Err("Invalid option"),
                     }
                 }
@@ -42,7 +45,7 @@ impl Config {
         if !found_option {
             config.show_lines = true;
             config.show_words = true;
-            config.show_chars = true;
+            config.show_bytes = true;
         }
 
         Ok(config)
@@ -52,6 +55,7 @@ impl Config {
 struct Counts {
     lines: usize,
     words: usize,
+    bytes: usize,
     chars: usize,
 }
 
@@ -59,14 +63,18 @@ fn count_content<R: Read>(mut reader: BufReader<R>) -> io::Result<Counts> {
     let mut counts = Counts {
         lines: 0,
         words: 0,
+        bytes: 0,
         chars: 0,
     };
 
     let mut byte_buf = Vec::new();
     reader.read_to_end(&mut byte_buf)?;
-    counts.chars = byte_buf.len();
+    counts.bytes = byte_buf.len();
 
-    for line in String::from_utf8_lossy(&byte_buf).lines() {
+    let content = String::from_utf8_lossy(&byte_buf);
+    counts.chars = content.chars().count();
+
+    for line in content.lines() {
         counts.lines += 1;
         counts.words += line.split_whitespace().count();
     }
@@ -96,30 +104,26 @@ fn main() {
     let buf_reader = BufReader::new(reader);
 
     match count_content(buf_reader) {
-        // FIXME: formatting for this is fucking terrible
         Ok(counts) => {
             let mut output = String::new();
             
             if config.show_lines {
-                output.push(' ');
-                output.push_str(&counts.lines.to_string());
-                output.push(' ');
+                output.push_str(&format!("{:>8}", counts.lines));
             }
             if config.show_words {
-                output.push_str(&counts.words.to_string());
-                output.push(' ');
+                output.push_str(&format!("{:>8}", counts.words));
+            }
+            if config.show_bytes {
+                output.push_str(&format!("{:>8}", counts.bytes));
             }
             if config.show_chars {
-                output.push_str(&counts.chars.to_string());
-                output.push(' ');
+                output.push_str(&format!("{:>8}", counts.chars));
             }
 
+            output.push(' ');
             if let Some(filename) = config.filename {
                 output.push_str(&filename);
-            } else {
-                output.push_str("-");
             }
-
             println!("{}", output);
         }
         Err(err) => {
